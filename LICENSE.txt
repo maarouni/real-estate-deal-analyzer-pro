@@ -1,0 +1,13 @@
+
+Copyright (c) 2025 Masoud Arouni
+
+All rights reserved.
+
+This software and associated documentation files (the "Software") are the exclusive property of the copyright holder.
+Unauthorized copying, redistribution, modification, or commercial use of the Software is strictly prohibited.
+
+Permission is hereby NOT granted to any person obtaining a copy of this Software to deal in the Software without 
+explicit written permission from the copyright holder.
+
+For licensing inquiries, collaboration opportunities, or other permissions, please contact:
+Masoud Arouni (maarouni@gmail.com)
