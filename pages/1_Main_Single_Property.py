@@ -1,14 +1,17 @@
 
 import streamlit as st
 import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from dotenv import load_dotenv
-from calculations import calculate_metrics
-from pdf_generator_single import generate_pdf
-from pdf_generator_single import generate_ai_verdict
+from calc_engine import calculate_metrics
+from pdf_single import generate_pdf
+from pdf_single import generate_ai_verdict
 import matplotlib.pyplot as plt
 from email.message import EmailMessage
 import smtplib
 import re
+import pandas as pd
 
 load_dotenv()
 
@@ -47,20 +50,22 @@ monthly_expenses = st.sidebar.number_input("Monthly Expenses ($: property tax + 
 # 💰 Financing & Growth
 st.sidebar.header("💰 Financing & Growth")
 down_payment_pct = st.sidebar.slider("Down Payment (%)", 0, 100, 20)
-interest_rate = st.sidebar.slider("Interest Rate (%)", 0.0, 15.0, 6.5)
-loan_term = st.sidebar.number_input("Loan Term (years)", min_value=1, value=30)
+mortgage_rate = st.sidebar.slider("Mortgage Rate (%)", 0.0, 15.0, 6.5)
+mortgage_term = st.sidebar.number_input("Mortgage Term (years)", min_value=1, value=30)
 vacancy_rate = st.sidebar.slider("Vacancy Rate (%)", 0, 100, 5)
 appreciation_rate = st.sidebar.slider("Annual Appreciation Rate (%)", 0, 10, 3)
 rent_growth_rate = st.sidebar.slider("Annual Rent Growth Rate (%)", 0, 10, 3)
 time_horizon = st.sidebar.slider("🏁 Investment Time Horizon (Years)", 1, 30, 10)
 
 # 🔢 Run Calculations
+# Monthly mortgage payment = derived from mortgage rate and term
 metrics = calculate_metrics(
-    purchase_price, monthly_rent, monthly_expenses,
-    down_payment_pct, interest_rate, loan_term,
-    vacancy_rate, appreciation_rate, rent_growth_rate,
+    purchase_price, monthly_rent, down_payment_pct,
+    mortgage_rate, mortgage_term,
+    monthly_expenses, vacancy_rate, appreciation_rate, rent_growth_rate,
     time_horizon
 )
+
 
 # 🧾 Generate PDF
 #pdf_bytes = generate_pdf(metrics, time_horizon, street_address, zip_code)
@@ -71,8 +76,8 @@ property_data = {
     "monthly_rent": monthly_rent,
     "monthly_expenses": monthly_expenses,
     "down_payment_pct": down_payment_pct,
-    "interest_rate": interest_rate,
-    "loan_term": loan_term,
+    "mortgage_rate": mortgage_rate,
+    "mortgage_term": mortgage_term,
     "vacancy_rate": vacancy_rate,
     "appreciation_rate": appreciation_rate,
     "rent_growth_rate": rent_growth_rate,
@@ -83,10 +88,11 @@ summary_text, grade = generate_ai_verdict(metrics)
 pdf_bytes = generate_pdf(property_data, metrics, summary_text)
 
 # 📊 Display Long-Term Metrics
-st.markdown("## 📉 Long-Term Metrics")
-col1, col2 = st.columns(2)
-col1.metric("IRR (%)", f"{metrics.get('irr (%)', 0):.2f}")
-col2.metric("Equity Multiple", f"{metrics.get('equity_multiple', 0):.2f}")
+st.subheader("📈 Long-Term Metrics")
+col1, col2, col3 = st.columns(3)
+col1.metric("IRR (Operational) (%)", f"{metrics.get('IRR (Operational) (%)', 0):.2f}")
+col2.metric("IRR (Total incl. Sale) (%)", f"{metrics.get('IRR (Total incl. Sale) (%)', 0):.2f}")
+col3.metric("Equity Multiple", f"{metrics.get('equity_multiple', 0):.2f}")
 
 # 📈 Multi-Year Cash Flow Projection
 st.subheader("📈 Multi-Year Cash Flow Projection")
@@ -109,7 +115,7 @@ st.pyplot(fig)
 # 📘 Download User Manual
 st.markdown("---")
 try:
-    with open("User_Manual_Investment_Metrics_Explained_Styled_Final.pdf", "rb") as f:
+    with open("Investment_Metrics_User_Guide.pdf", "rb") as f:
         st.download_button(
             label="📘 Download User Manual (PDF)",
             data=f,
@@ -153,3 +159,49 @@ if st.button("Send Email Report") and recipient_email:
         st.success(f"✅ Report sent to {recipient_email}!")
     except Exception as e:
         st.error(f"❌ Failed to send email: {e}")
+
+# =============================
+# 🔧 Optional Enhancements
+# =============================
+with st.expander("🔧 Optional Enhancements", expanded=False):
+
+    # 🏗️ Capital Improvements Tracker
+    st.subheader("🏗️ Capital Improvements Tracker")
+    st.caption("Use this to record upgrades like kitchen remodels, HVAC systems, or roof replacements.")
+
+    # Editable table with ROI input
+    initial_data = pd.DataFrame({
+        "Year": [""],
+        "Amount ($)": [""],
+        "Description": [""],
+        "Rent Uplift ($/mo)": [""]
+    })
+
+    improvements_df = st.data_editor(
+        initial_data,
+        num_rows="dynamic",
+        width='stretch',
+        key="improvements_editor"
+    )
+
+    # Convert to numbers and compute derived values
+    improvements_df["Amount ($)"] = pd.to_numeric(improvements_df["Amount ($)"], errors="coerce")
+    improvements_df["Rent Uplift ($/mo)"] = pd.to_numeric(improvements_df["Rent Uplift ($/mo)"], errors="coerce")
+    improvements_df["Annual Uplift ($)"] = improvements_df["Rent Uplift ($/mo)"] * 12
+    improvements_df["ROI (%)"] = (
+        improvements_df["Annual Uplift ($)"] / improvements_df["Amount ($)"]
+    ) * 100
+
+    # Drop rows with missing values
+    valid_df = improvements_df.dropna(subset=["Amount ($)", "Annual Uplift ($)", "ROI (%)"])
+
+    # Totals
+    total_cost = valid_df["Amount ($)"].sum()
+    weighted_roi = (
+        (valid_df["Amount ($)"] * valid_df["ROI (%)"]).sum() / total_cost
+        if total_cost > 0 else 0
+    )
+
+    # Display Metrics
+    st.success(f"📊 Weighted ROI from Capital Improvements: {weighted_roi:.2f}% (based on ${total_cost:,.0f} spent)")
+

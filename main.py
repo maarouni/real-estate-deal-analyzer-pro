@@ -73,13 +73,13 @@ with col1:
     st.subheader("🔍 Single Property Evaluator")
     st.write("Evaluate one property's cash flow, ROI, and more.")
     if st.button("Go to Single Evaluator", key="single_btn"):
-        st.switch_page("pages/1_main_single.py")
+        st.switch_page("pages/1_Main_Single_Property.py")
 
 with col2:
     st.subheader("📊 Dual Property Comparison Evaluator")
     st.write("Compare two investment opportunities side-by-side.")
     if st.button("Go to Dual Comparison", key="dual_btn"):
-        st.switch_page("pages/2_main_dual.py")
+        st.switch_page("pages/2_Main_Dual_Property.py")
 
 st.markdown("""
     <hr style="margin-top: 2rem; margin-bottom: 1rem;">

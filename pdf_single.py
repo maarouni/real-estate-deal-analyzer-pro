@@ -104,30 +104,11 @@ def generate_ai_verdict(metrics: dict) -> tuple[str, str]:
         grade = "F"
         summary = "This is an F-grade rental with upside potential."
 
+    # ✅ Keep PDF table grade in sync with AI Verdict
+    metrics["Grade"] = grade
     return summary, grade
 
-"""def generate_pdf(metrics, time_horizon, street_address=None, zip_code=None):
-    buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
 
-    # Title and Address
-    p.setFont("Helvetica-Bold", 16)
-    p.drawString(50, 770, "Real Estate Investment Report")
-    p.setFont("Helvetica", 12)
-    p.drawString(50, 750, f"📍 Address: {street_address or 'N/A'}   ZIP: {zip_code or 'N/A'}")
-
-    # Metrics
-    p.drawString(50, 720, f"Time Horizon (Years): {time_horizon}")
-    p.drawString(50, 700, f"IRR (%): {metrics.get('irr', 0):.2f}")
-    p.drawString(50, 680, f"Equity Multiple: {metrics.get('equity_multiple', 0):.2f}")
-    p.drawString(50, 660, f"Total Return: ${metrics.get('total_return', 0):,.2f}")
-    p.drawString(50, 640, f"Cash-on-Cash Return (%): {metrics.get('cash_on_cash_return', 0):.2f}")
-
-    p.showPage()
-    p.save()
-    buffer.seek(0)
-    return buffer
-"""
 
 def generate_pdf(property_data, metrics, summary_text):
     buffer = BytesIO()
@@ -137,10 +118,10 @@ def generate_pdf(property_data, metrics, summary_text):
 
 
     # 📍 Add Street Address + ZIP
-    address = property_data.get("street_address", "N/A")
+    """address = property_data.get("street_address", "N/A")
     zip_code = property_data.get("zip_code", "N/A")
     elements.append(Paragraph(f"<b>📍 Property Address:</b> {address}   <b>ZIP:</b> {zip_code}", styles["Normal"]))
-    elements.append(Spacer(1, 12))
+    elements.append(Spacer(1, 12))"""
 
     # Title
     elements.append(Paragraph("Real Estate Evaluator Report", styles["Title"]))
@@ -158,16 +139,40 @@ def generate_pdf(property_data, metrics, summary_text):
     )
     elements.extend([disclaimer_text, Spacer(1, 12)])
 
-    # Property & Loan Inputs
+     # Property & Mortgage Inputs
     elements.append(Paragraph("<b>🏠 Property & Loan Inputs</b>", styles["Heading3"]))
-    inputs_data = [[k, str(v)] for k, v in property_data.items()]
+
+    # ✅ Prettify and rename keys for clean PDF display
+    def prettify_key(k):
+        mapping = {
+            "street_address": "Street Address",
+            "zip_code": "ZIP Code",
+            "purchase_price": "Purchase Price ($)",
+            "monthly_rent": "Monthly Rent ($)",
+            "monthly_expenses": "Monthly Expenses ($)",
+            "down_payment_pct": "Down Payment (%)",
+            "mortgage_rate": "Mortgage Rate (%)",
+            "mortgage_term": "Mortgage Term (Years)",
+            "vacancy_rate": "Vacancy Rate (%)",
+            "appreciation_rate": "Appreciation Rate (%)",
+            "rent_growth_rate": "Rent Growth Rate (%)",
+            "time_horizon": "🏁 Investment Time Horizon (Years)"
+        }
+        return mapping.get(k, k.replace("_", " ").title())
+
+    inputs_data = [[prettify_key(k), str(v)] for k, v in property_data.items()]
+
     table_inputs = Table(inputs_data, colWidths=[200, 300])
     table_inputs.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.lightblue),
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+    #('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#D9EAF7")),  # header row light blue
+    ('BACKGROUND', (0, 1), (-1, -1), colors.white),                # all data rows white
+    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+    ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor("#404040")),
+    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+    ('FONTSIZE', (0, 0), (-1, -1), 10),
     ]))
     elements.append(table_inputs)
+    #elements.append(table_inputs)
     elements.append(Spacer(1, 12))
 
     # Investment Metrics
@@ -198,10 +203,12 @@ def generate_pdf(property_data, metrics, summary_text):
 
     table_metrics = Table(metrics_cleaned, colWidths=[200, 350])  # wider cell
     table_metrics.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTSIZE", (0, 0), (-1, -1), 10),
+    #('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#D9EAF7")),  # header row light blue
+    ('BACKGROUND', (0, 1), (-1, -1), colors.white),                # all data rows white
+    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+    ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor("#404040")),
+    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+    ('FONTSIZE', (0, 0), (-1, -1), 10),
     ]))
     elements.append(table_metrics)
 

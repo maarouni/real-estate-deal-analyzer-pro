@@ -291,6 +291,8 @@ def generate_comparison_pdf_table_style(metrics_a, metrics_b, address_a="", zip_
         "Cash-on-Cash Return (%)",
         "First Year Cash Flow ($)",
         "Monthly Mortgage ($)",
+        "Mortgage Rate (%)",            # ✅ Optional new line
+        "Mortgage Term (Years)",        # ✅ Optional new line
         "Grade",
         "Multi-Year Cash Flow"  # Now handled in a single place
     ]

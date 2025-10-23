@@ -4,23 +4,25 @@ from io import BytesIO
 import os
 import sys  # ✅ Move this before using sys
 sys.path.append(os.path.abspath(".."))  # ✅ Now valid
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from dotenv import load_dotenv
 import smtplib
 from email.message import EmailMessage
 import matplotlib.pyplot as plt
 import pandas as pd
-from calculations import calculate_metrics
-from pdf_generator_dual import generate_pdf , generate_comparison_pdf , generate_comparison_pdf_table_style
+from calc_engine import calculate_metrics
+from pdf_dual import generate_pdf , generate_comparison_pdf , generate_comparison_pdf_table_style
 load_dotenv()
 
 #from pdf_generator import generate_comparison_pdf_table_style
  #✅ Add this right below the imports — before any Streamlit UI code
 st.set_page_config(
     page_title="Dual Property Comparison Evaluator",
+    page_icon="🏘️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
-from pdf_generator_dual import generate_ai_verdict
+from pdf_dual import generate_ai_verdict
 
 # 🔐 Password Gate — load from .env or fallback
 load_dotenv()
@@ -33,7 +35,7 @@ if "authenticated" not in st.session_state:
 
 # Show password input only if not yet authenticated
 if not st.session_state.authenticated:
-    st.title("🏠 Real Estate Deal Evaluator")
+    st.title("🏘️ Dual Property Deal Evaluator")
     password = st.text_input("🔒 Please enter access password", type="password")
 
     if password == APP_PASSWORD:
@@ -90,8 +92,8 @@ zip_code_b = st.sidebar.text_input("ZIP Code (Property B)", "")
 st.sidebar.subheader("💰 Financing & Growth")
 
 # Styled Sliders with slightly larger font via label formatting
-interest_rate = st.sidebar.slider("📈 Interest Rate (%)", 0.0, 15.0, 5.5, 0.1)
-loan_term = st.sidebar.slider("📆 Loan Term (years)", 5, 40, 30)
+mortgage_rate = st.sidebar.slider("📈 Mortgage Rate (%)", 0.0, 15.0, 5.5, 0.1)
+mortgage_term = st.sidebar.slider("📆 Mortgage Term (years)", 5, 40, 30)
 vacancy_rate = st.sidebar.slider("🏠 Vacancy Rate (%)", 0.0, 20.0, 5.0, 0.5)
 
 # 👇 DO NOT include shared Down Payment slider here
@@ -107,7 +109,7 @@ with col1:
     monthly_expenses_a = st.number_input("Monthly Expenses A", value=300, key="monthly_expenses_a")
     appreciation_rate_a = st.slider("Annual Appreciation A (%)", 0.0, 10.0, value=3.0, step=0.1, key="appreciation_rate_a")
     rent_growth_rate_a = st.slider("Annual Rent Growth A (%)", 0.0, 10.0, value=2.0, step=0.1, key="rent_growth_rate_a")
-    time_horizon_a = st.slider("Time Horizon A (Years)", 1, 30, value=10, key="time_horizon_a")
+    time_horizon_a = st.slider("🏁 Investment Time Horizon A (Years)", 1, 30, value=10, key="time_horizon_a")
     # ...add other inputs like interest rate, years, etc.
 
 with col2:
@@ -118,7 +120,7 @@ with col2:
     monthly_expenses_b = st.number_input("Monthly Expenses B", value=300, key="monthly_expenses_b")
     appreciation_rate_b = st.slider("Annual Appreciation B (%)", 0.0, 10.0, value=3.0, step=0.1, key="appreciation_rate_b")
     rent_growth_rate_b = st.slider("Annual Rent Growth B (%)", 0.0, 10.0, value=2.0, step=0.1, key="rent_growth_rate_b")
-    time_horizon_b = st.slider("Time Horizon A (Years)", 1, 30, value=10, key="time_horizon_b")
+    time_horizon_b = st.slider("🏁 Investment Time Horizon A (Years)", 1, 30, value=10, key="time_horizon_b")
     # ...same structure
 
 # Calculate metrics
@@ -127,8 +129,8 @@ metrics_a = calculate_metrics(
     purchase_price_a,
     rent_a,
     down_payment_pct_a,
-    interest_rate,
-    loan_term,
+    mortgage_rate,
+    mortgage_term,
     monthly_expenses_a,
     vacancy_rate,
     appreciation_rate_a,
@@ -141,8 +143,8 @@ metrics_b = calculate_metrics(
     purchase_price_b,
     rent_b,
     down_payment_pct_b,
-    interest_rate,
-    loan_term,
+    mortgage_rate,
+    mortgage_term,
     monthly_expenses_b,
     vacancy_rate,
     appreciation_rate_b,
@@ -173,7 +175,7 @@ if metrics_a and metrics_b:
 # Title
 #st.markdown("""<div style='text-align: center; margin-top: -40px;'><h1>🏡 Real Estate Deal Evaluator</h1></div>""", unsafe_allow_html=True)
 
-load_dotenv()
+#load_dotenv()
 
 # Prepare inputs and call AI verdict generator
 verdict_input = {
@@ -211,8 +213,8 @@ property_data = {
     "Rent Growth Rate (%) B": rent_growth_rate_b,
     
     # Shared inputs
-    "Interest Rate (%)": interest_rate,
-    "Loan Term (Years)": loan_term,
+    "Mortgage Rate (%)": mortgage_rate,
+    "Mortgage Term (Years)": mortgage_term,
     "Vacancy Rate (%)": vacancy_rate,
 }
 
@@ -233,7 +235,7 @@ property_data_a = {
     "Monthly Expenses": monthly_expenses_a,
     "Appreciation Rate (%)": appreciation_rate_a,
     "Rent Growth Rate (%)": rent_growth_rate_a,
-    "Time Horizon (Years)": time_horizon_a
+    "🏁 Investment Time Horizon (Years)": time_horizon_a
 }
 
 property_data_b = {
@@ -245,7 +247,7 @@ property_data_b = {
     "Monthly Expenses": monthly_expenses_b,
     "Appreciation Rate (%)": appreciation_rate_b,
     "Rent Growth Rate (%)": rent_growth_rate_b,
-    "Time Horizon (Years)": time_horizon_b
+    "🏁 Investment Time Horizon (Years)": time_horizon_b
 }
 
 # ✅ Now generate dual PDF
@@ -260,8 +262,8 @@ pdf_bytes = generate_pdf(
         "Down Payment (%)": down_payment_pct_a,
         "Appreciation Rate (%)": appreciation_rate_a,
         "Rent Growth Rate (%)": rent_growth_rate_a,
-        "Interest Rate (%)": interest_rate,
-        "Loan Term (Years)": loan_term,
+        "Mortgage Rate (%)": mortgage_rate,
+        "Mortgage Term (Years)": mortgage_term,
         "Vacancy Rate (%)": vacancy_rate,
     },
     property_data_b={
@@ -273,8 +275,8 @@ pdf_bytes = generate_pdf(
         "Down Payment (%)": down_payment_pct_b,
         "Appreciation Rate (%)": appreciation_rate_b,
         "Rent Growth Rate (%)": rent_growth_rate_b,
-        "Interest Rate (%)": interest_rate,
-        "Loan Term (Years)": loan_term,
+        "Mortgage Rate (%)": mortgage_rate,
+        "Mortgage Term (Years)": mortgage_term,
         "Vacancy Rate (%)": vacancy_rate,
     },
     metrics_a=metrics_a,
@@ -297,15 +299,18 @@ st.subheader("📈 Multi-Year ROI, Rent & Cash Flow Comparison (A vs B)")
 
 # ✅ INSERT THE NEW BLOCK RIGHT AFTER THAT:
 st.subheader("📈 Long-Term Metrics")
-col1, col2 = st.columns(2)
 
-with col1:
-    st.metric("IRR A (%)", f"{metrics_a.get('irr (%)', 0):.2f}")
-    st.metric("Equity Multiple A", f"{metrics_a.get('equity_multiple', 0):.2f}")
+# --- Property A Metrics ---
+col1, col2, col3 = st.columns(3)
+col1.metric("IRR A (Operational) (%)", f"{metrics_a.get('IRR (Operational) (%)', 0):.2f}")
+col2.metric("IRR A (Total incl. Sale) (%)", f"{metrics_a.get('IRR (Total incl. Sale) (%)', 0):.2f}")
+col3.metric("Equity Multiple A", f"{metrics_a.get('equity_multiple', 0):.2f}")
 
-with col2:
-    st.metric("IRR B (%)", f"{metrics_b.get('irr (%)', 0):.2f}")
-    st.metric("Equity Multiple B", f"{metrics_b.get('equity_multiple', 0):.2f}")
+# --- Property B Metrics ---
+col4, col5, col6 = st.columns(3)
+col4.metric("IRR B (Operational) (%)", f"{metrics_b.get('IRR (Operational) (%)', 0):.2f}")
+col5.metric("IRR B (Total incl. Sale) (%)", f"{metrics_b.get('IRR (Total incl. Sale) (%)', 0):.2f}")
+col6.metric("Equity Multiple B", f"{metrics_b.get('equity_multiple', 0):.2f}")
 
 # Extract data from metrics
 # Pad shorter cash flow list with None or 0
@@ -334,9 +339,6 @@ rent_a = rent_a[:len(years_a)]
 rent_b = rent_b[:len(years_b)]
 roi_a = roi_a[:len(years_a)]
 roi_b = roi_b[:len(years_b)]
-
-#ax1.plot(years_a, cf_a, marker='o', label="Cash Flow A ($)", color='blue')
-#ax1.plot(years_b, cf_b, marker='o', label="Cash Flow B ($)", color='skyblue')
 
 
 # Primary Y-axis: Cash Flow & Rent
@@ -398,3 +400,51 @@ if st.button("Send Email Report") and recipient_email:
         st.success(f"✅ Report sent to {recipient_email}!")
     except Exception as e:
         st.error(f"❌ Failed to send email: {e}")
+# =============================
+# 🔧 Optional Enhancements
+# =============================
+with st.expander("🔧 Optional Enhancements", expanded=False):
+
+    # 🏗️ Capital Improvements Tracker
+    st.subheader("🏗️ Capital Improvements Tracker")
+    st.caption("Use this to record upgrades like kitchen remodels, HVAC systems, or roof replacements.")
+
+    # Editable table with ROI input
+    initial_data = pd.DataFrame({
+        "Year": [""],
+        "Amount ($)": [""],
+        "Description": [""],
+        "Rent Uplift ($/mo)": [""]
+    })
+
+    improvements_df = st.data_editor(
+        initial_data,
+        num_rows="dynamic",
+        width='stretch',
+        key="improvements_editor"
+    )
+
+    # Convert to numbers and compute derived values
+    improvements_df["Amount ($)"] = pd.to_numeric(improvements_df["Amount ($)"], errors="coerce")
+    improvements_df["Rent Uplift ($/mo)"] = pd.to_numeric(improvements_df["Rent Uplift ($/mo)"], errors="coerce")
+    improvements_df["Annual Uplift ($)"] = improvements_df["Rent Uplift ($/mo)"] * 12
+    improvements_df["ROI (%)"] = (
+        improvements_df["Annual Uplift ($)"] / improvements_df["Amount ($)"]
+    ) * 100
+
+    # Drop rows with missing values
+    valid_df = improvements_df.dropna(subset=["Amount ($)", "Annual Uplift ($)", "ROI (%)"])
+
+    # Totals
+    total_cost = valid_df["Amount ($)"].sum()
+    weighted_roi = (
+        (valid_df["Amount ($)"] * valid_df["ROI (%)"]).sum() / total_cost
+        if total_cost > 0 else 0
+    )
+
+    # Display Metrics
+    st.success(f"📊 Weighted ROI from Capital Improvements: {weighted_roi:.2f}% (based on ${total_cost:,.0f} spent)")
+
+
+
+        
